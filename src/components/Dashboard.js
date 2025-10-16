@@ -46,10 +46,12 @@ function Dashboard({ token, onLogout }) {
 
   useEffect(() => {
     fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     fetchBars(currentTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTab]);
 
   const handleApprove = async (id) => {

@@ -30,6 +30,7 @@ function BannedIPsManager({ token, onUpdate }) {
 
   useEffect(() => {
     fetchBannedIPs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleBanIP = async (e) => {
