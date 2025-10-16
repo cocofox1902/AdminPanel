@@ -1,0 +1,132 @@
+.bar-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.bar-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.bar-card.pending {
+  border-top: 4px solid #ffa726;
+}
+
+.bar-card.approved {
+  border-top: 4px solid #66bb6a;
+}
+
+.bar-card.rejected {
+  border-top: 4px solid #ef5350;
+}
+
+.bar-card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bar-card-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.pending {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.status-badge.approved {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-badge.rejected {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.bar-card-body {
+  padding: 20px;
+}
+
+.bar-info {
+  margin-bottom: 16px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.info-row .label {
+  color: #666;
+  font-weight: 500;
+}
+
+.info-row .value {
+  color: #333;
+  font-weight: 600;
+}
+
+.bar-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.action-button {
+  flex: 1;
+  min-width: 100px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.action-button.approve {
+  background: #66bb6a;
+  color: white;
+}
+
+.action-button.approve:hover {
+  background: #4caf50;
+}
+
+.action-button.reject {
+  background: #ef5350;
+  color: white;
+}
+
+.action-button.reject:hover {
+  background: #e53935;
+}
+
+.action-button.delete {
+  background: #bdbdbd;
+  color: white;
+}
+
+.action-button.delete:hover {
+  background: #9e9e9e;
+}
