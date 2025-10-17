@@ -10,10 +10,10 @@ const AddBarTab = () => {
   const [messageType, setMessageType] = useState("");
 
   // Coordonnées par défaut (Paris)
-  const [mapCenter, setMapCenter] = useState({
+  const mapCenter = {
     lat: 48.8566,
     lng: 2.3522,
-  });
+  };
 
   // Initialiser la carte Google Maps
   useEffect(() => {
@@ -67,6 +67,7 @@ const AddBarTab = () => {
     } else {
       initMap();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSubmit = async (e) => {
@@ -107,7 +108,7 @@ const AddBarTab = () => {
       });
 
       if (response.ok) {
-        const result = await response.json();
+        await response.json();
         setMessage(`Bar "${barName}" créé avec succès !`);
         setMessageType("success");
 
