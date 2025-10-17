@@ -19,20 +19,26 @@ function BarCard({ bar, onApprove, onReject, onDelete, status }) {
           <div className="info-row">
             <span className="label">📍 Location:</span>
             <span className="value">
-              {bar.latitude.toFixed(4)}, {bar.longitude.toFixed(4)}
+              {bar.latitude?.toFixed(4)}, {bar.longitude?.toFixed(4)}
             </span>
           </div>
           <div className="info-row">
             <span className="label">💰 Price:</span>
-            <span className="value">€{bar.regularPrice.toFixed(2)}</span>
+            <span className="value">
+              €{(bar.regularPrice || bar.regularprice)?.toFixed(2)}
+            </span>
           </div>
           <div className="info-row">
             <span className="label">🕒 Submitted:</span>
-            <span className="value">{formatDate(bar.submittedAt)}</span>
+            <span className="value">
+              {formatDate(bar.submittedAt || bar.submittedat)}
+            </span>
           </div>
           <div className="info-row">
             <span className="label">🌐 IP:</span>
-            <span className="value">{bar.submittedByIP || "N/A"}</span>
+            <span className="value">
+              {bar.submittedByIP || bar.submittedbyip || "N/A"}
+            </span>
           </div>
         </div>
 
