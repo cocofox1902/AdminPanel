@@ -1,7 +1,7 @@
 import React from "react";
 import "./BarCard.css";
 
-function BarCard({ bar, onApprove, onReject, onDelete, status }) {
+function BarCard({ bar, onApprove, onReject, onDelete, onEdit, status }) {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleString();
@@ -75,6 +75,12 @@ function BarCard({ bar, onApprove, onReject, onDelete, status }) {
               ✓ Approve
             </button>
           )}
+          <button
+            onClick={() => onEdit(bar)}
+            className="action-button edit"
+          >
+            ✏️ Edit
+          </button>
           <button
             onClick={() => onDelete(bar.id)}
             className="action-button delete"

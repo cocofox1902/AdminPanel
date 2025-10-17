@@ -5,6 +5,7 @@ import API_URL from "../config";
 import BarCard from "./BarCard";
 import BannedIPsManager from "./BannedIPsManager";
 import TwoFactorSettings from "./TwoFactorSettings";
+import EditBarModal from "./EditBarModal";
 import "./Dashboard.css";
 
 function Dashboard({ token, onLogout }) {
@@ -18,6 +19,7 @@ function Dashboard({ token, onLogout }) {
   const [bars, setBars] = useState([]);
   const [currentTab, setCurrentTab] = useState("pending");
   const [loading, setLoading] = useState(false);
+  const [editingBar, setEditingBar] = useState(null);
 
   const axiosConfig = {
     headers: { Authorization: `Bearer ${token}` },
@@ -89,6 +91,21 @@ function Dashboard({ token, onLogout }) {
     } catch (error) {
       console.error("Error deleting bar:", error);
       alert("Failed to delete bar");
+    }
+  };
+
+  const handleEdit = (bar) => {
+    setEditingBar(bar);
+  };
+
+  const handleUpdateBar = async (id, updatedData) => {
+    try {
+      await axios.put(`${API_URL}/admin/bars/${id}`, updatedData, axiosConfig);
+      fetchBars(currentTab);
+      fetchStats();
+    } catch (error) {
+      console.error("Error updating bar:", error);
+      throw new Error(error.response?.data?.error || "Failed to update bar");
     }
   };
 
@@ -184,6 +201,7 @@ function Dashboard({ token, onLogout }) {
                       onApprove={handleApprove}
                       onReject={handleReject}
                       onDelete={handleDelete}
+                      onEdit={handleEdit}
                       status={currentTab}
                     />
                   ))}
@@ -193,6 +211,14 @@ function Dashboard({ token, onLogout }) {
           )}
         </div>
       </div>
+
+      {editingBar && (
+        <EditBarModal
+          bar={editingBar}
+          onClose={() => setEditingBar(null)}
+          onUpdate={handleUpdateBar}
+        />
+      )}
     </div>
   );
 }
