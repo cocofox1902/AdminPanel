@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
+import AddBarTab from "./components/AddBarTab";
 import "./App.css";
 
 function App() {
@@ -44,6 +45,10 @@ function App() {
               <Navigate to="/login" />
             )
           }
+        />
+        <Route
+          path="/add-bar"
+          element={token ? <AddBarTab /> : <Navigate to="/login" />}
         />
         <Route
           path="/"

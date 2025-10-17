@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import API_URL from "../config";
 import BarCard from "./BarCard";
@@ -6,6 +7,7 @@ import BannedIPsManager from "./BannedIPsManager";
 import "./Dashboard.css";
 
 function Dashboard({ token, onLogout }) {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     pending: 0,
     approved: 0,
@@ -94,9 +96,17 @@ function Dashboard({ token, onLogout }) {
       <header className="dashboard-header">
         <div className="header-content">
           <h1>🍺 BudBeer Admin Panel</h1>
-          <button onClick={onLogout} className="logout-button">
-            Logout
-          </button>
+          <div className="header-actions">
+            <button
+              onClick={() => navigate("/add-bar")}
+              className="add-bar-button"
+            >
+              ➕ Créer un bar
+            </button>
+            <button onClick={onLogout} className="logout-button">
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
