@@ -7,6 +7,25 @@
 .add-bar-header {
   margin-bottom: 30px;
   text-align: center;
+  position: relative;
+}
+
+.back-button {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 10px 20px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.3s ease;
+}
+
+.back-button:hover {
+  background: #5a6268;
 }
 
 .add-bar-header h2 {

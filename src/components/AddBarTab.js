@@ -1,7 +1,34 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 import "./AddBarTab.css";
 
+// Fix pour les icônes Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
+  iconUrl: require("leaflet/dist/images/marker-icon.png"),
+  shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
+});
+
+// Composant pour gérer les clics sur la carte
+function LocationMarker({ onLocationSelect }) {
+  const [position, setPosition] = useState(null);
+
+  useMapEvents({
+    click(e) {
+      setPosition(e.latlng);
+      onLocationSelect(e.latlng);
+    },
+  });
+
+  return position === null ? null : <Marker position={position} />;
+}
+
 const AddBarTab = () => {
+  const navigate = useNavigate();
   const [barName, setBarName] = useState("");
   const [barPrice, setBarPrice] = useState("");
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -10,65 +37,14 @@ const AddBarTab = () => {
   const [messageType, setMessageType] = useState("");
 
   // Coordonnées par défaut (Paris)
-  const mapCenter = {
-    lat: 48.8566,
-    lng: 2.3522,
+  const mapCenter = [48.8566, 2.3522];
+
+  const handleLocationSelect = (latlng) => {
+    setSelectedLocation({
+      lat: latlng.lat,
+      lng: latlng.lng,
+    });
   };
-
-  // Initialiser la carte Google Maps
-  useEffect(() => {
-    const initMap = () => {
-      const map = new window.google.maps.Map(document.getElementById("map"), {
-        zoom: 13,
-        center: mapCenter,
-        mapTypeId: "roadmap",
-      });
-
-      // Marqueur pour la position sélectionnée
-      let marker = null;
-
-      // Écouter les clics sur la carte
-      map.addListener("click", (event) => {
-        const lat = event.latLng.lat();
-        const lng = event.latLng.lng();
-
-        setSelectedLocation({ lat, lng });
-
-        // Supprimer l'ancien marqueur
-        if (marker) {
-          marker.setMap(null);
-        }
-
-        // Créer un nouveau marqueur
-        marker = new window.google.maps.Marker({
-          position: { lat, lng },
-          map: map,
-          title: "Position du bar",
-        });
-      });
-
-      // Marqueur initial au centre
-      marker = new window.google.maps.Marker({
-        position: mapCenter,
-        map: map,
-        title: "Position du bar",
-      });
-      setSelectedLocation(mapCenter);
-    };
-
-    // Charger Google Maps si pas déjà chargé
-    if (!window.google) {
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&libraries=places`;
-      script.async = true;
-      script.defer = true;
-      script.onload = initMap;
-      document.head.appendChild(script);
-    } else {
-      initMap();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -92,7 +68,7 @@ const AddBarTab = () => {
     setMessage("");
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken");
       const response = await fetch(`${process.env.REACT_APP_API_URL}/bars`, {
         method: "POST",
         headers: {
@@ -132,13 +108,26 @@ const AddBarTab = () => {
   return (
     <div className="add-bar-tab">
       <div className="add-bar-header">
-        <h2>Créer un nouveau bar</h2>
+        <button onClick={() => navigate("/dashboard")} className="back-button">
+          ← Retour au Dashboard
+        </button>
+        <h2>🗺️ Créer un nouveau bar</h2>
         <p>Cliquez sur la carte pour sélectionner la position du bar</p>
       </div>
 
       <div className="add-bar-content">
         <div className="map-container">
-          <div id="map" className="map"></div>
+          <MapContainer
+            center={mapCenter}
+            zoom={13}
+            style={{ height: "500px", width: "100%", borderRadius: "8px" }}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <LocationMarker onLocationSelect={handleLocationSelect} />
+          </MapContainer>
           {selectedLocation && (
             <div className="location-info">
               <strong>Position sélectionnée :</strong>
