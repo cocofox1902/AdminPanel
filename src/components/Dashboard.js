@@ -4,6 +4,7 @@ import axios from "axios";
 import API_URL from "../config";
 import BarCard from "./BarCard";
 import BannedIPsManager from "./BannedIPsManager";
+import TwoFactorSettings from "./TwoFactorSettings";
 import "./Dashboard.css";
 
 function Dashboard({ token, onLogout }) {
@@ -155,11 +156,19 @@ function Dashboard({ token, onLogout }) {
           >
             Banned IPs ({stats.bannedIPs})
           </button>
+          <button
+            className={`tab ${currentTab === "security" ? "active" : ""}`}
+            onClick={() => setCurrentTab("security")}
+          >
+            🔐 Security
+          </button>
         </div>
 
         <div className="content">
           {currentTab === "banned-ips" ? (
             <BannedIPsManager token={token} onUpdate={fetchStats} />
+          ) : currentTab === "security" ? (
+            <TwoFactorSettings token={token} />
           ) : (
             <>
               {loading ? (
