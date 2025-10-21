@@ -75,10 +75,7 @@ function BarCard({ bar, onApprove, onReject, onDelete, onEdit, status }) {
               ✓ Approve
             </button>
           )}
-          <button
-            onClick={() => onEdit(bar)}
-            className="action-button edit"
-          >
+          <button onClick={() => onEdit(bar)} className="action-button edit">
             ✏️ Edit
           </button>
           <button

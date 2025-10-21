@@ -173,4 +173,3 @@ function EditBarModal({ bar, onClose, onUpdate }) {
 }
 
 export default EditBarModal;
-
