@@ -6,6 +6,7 @@ import BarCard from "./BarCard";
 import BannedIPsManager from "./BannedIPsManager";
 import TwoFactorSettings from "./TwoFactorSettings";
 import EditBarModal from "./EditBarModal";
+import ReportsManager from "./ReportsManager";
 import "./Dashboard.css";
 
 function Dashboard({ token, onLogout }) {
@@ -15,6 +16,7 @@ function Dashboard({ token, onLogout }) {
     approved: 0,
     rejected: 0,
     bannedIPs: 0,
+    reports: 0,
   });
   const [bars, setBars] = useState([]);
   const [currentTab, setCurrentTab] = useState("pending");
@@ -174,6 +176,12 @@ function Dashboard({ token, onLogout }) {
             Banned IPs ({stats.bannedIPs})
           </button>
           <button
+            className={`tab ${currentTab === "reports" ? "active" : ""}`}
+            onClick={() => setCurrentTab("reports")}
+          >
+            🚨 Reports ({stats.reports})
+          </button>
+          <button
             className={`tab ${currentTab === "security" ? "active" : ""}`}
             onClick={() => setCurrentTab("security")}
           >
@@ -184,6 +192,8 @@ function Dashboard({ token, onLogout }) {
         <div className="content">
           {currentTab === "banned-ips" ? (
             <BannedIPsManager token={token} onUpdate={fetchStats} />
+          ) : currentTab === "reports" ? (
+            <ReportsManager token={token} onUpdate={fetchStats} />
           ) : currentTab === "security" ? (
             <TwoFactorSettings token={token} />
           ) : (
