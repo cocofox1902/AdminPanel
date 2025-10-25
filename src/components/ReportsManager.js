@@ -110,7 +110,8 @@ function ReportsManager({ token, onUpdate }) {
                   <div className="meta-item">
                     <span className="label">📍 Position:</span>
                     <span className="value">
-                      {report.latitude?.toFixed(4)}, {report.longitude?.toFixed(4)}
+                      {report.latitude?.toFixed(4)},{" "}
+                      {report.longitude?.toFixed(4)}
                     </span>
                   </div>
                   <div className="meta-item">
@@ -153,4 +154,3 @@ function ReportsManager({ token, onUpdate }) {
 }
 
 export default ReportsManager;
-
