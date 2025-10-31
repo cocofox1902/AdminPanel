@@ -1,11 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  useMapEvents,
-} from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import API_URL from "../config";
@@ -42,7 +37,10 @@ const CreateBarModal = ({ token, onClose, onSuccess }) => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!selectedLocation) {
-      setMessage({ type: "error", text: "Clique sur la carte pour choisir l'emplacement." });
+      setMessage({
+        type: "error",
+        text: "Clique sur la carte pour choisir l'emplacement.",
+      });
       return;
     }
 
@@ -123,7 +121,7 @@ const CreateBarModal = ({ token, onClose, onSuccess }) => {
             {selectedLocation && (
               <div className="coords">
                 <span>
-                  Lat : {selectedLocation.lat.toFixed(5)} / Lon : {" "}
+                  Lat : {selectedLocation.lat.toFixed(5)} / Lon :{" "}
                   {selectedLocation.lng.toFixed(5)}
                 </span>
               </div>
@@ -160,11 +158,7 @@ const CreateBarModal = ({ token, onClose, onSuccess }) => {
             )}
 
             <div className="modal-actions">
-              <button
-                type="submit"
-                className="primary"
-                disabled={isSubmitting}
-              >
+              <button type="submit" className="primary" disabled={isSubmitting}>
                 {isSubmitting ? "Envoi..." : "Créer"}
               </button>
               <button
