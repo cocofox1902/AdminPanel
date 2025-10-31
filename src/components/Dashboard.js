@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import API_URL from "../config";
 import EditBarModal from "./EditBarModal";
+import CreateBarModal from "./CreateBarModal";
 import "./Dashboard.css";
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -133,7 +133,6 @@ const normalizeBan = (item) => ({
 });
 
 function Dashboard({ token, onLogout }) {
-  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("bars");
   const [stats, setStats] = useState({
     totalBars: 0,
@@ -150,6 +149,7 @@ function Dashboard({ token, onLogout }) {
   const [barSort, setBarSort] = useState("recent");
   const [showMap, setShowMap] = useState(false);
   const [editingBar, setEditingBar] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const [reports, setReports] = useState([]);
   const [reportsLoading, setReportsLoading] = useState(false);
@@ -400,17 +400,6 @@ function Dashboard({ token, onLogout }) {
             </button>
           ))}
         </nav>
-        <div className="sidebar-footer">
-          <button
-            className="sidebar-secondary"
-            onClick={() => navigate("/add-bar")}
-          >
-            + Ajouter un bar
-          </button>
-          <button className="sidebar-secondary" onClick={onLogout}>
-            Se déconnecter
-          </button>
-        </div>
       </aside>
 
       <div className="admin-body">
@@ -428,7 +417,10 @@ function Dashboard({ token, onLogout }) {
             </p>
           </div>
           <div className="header-actions">
-            <button className="primary" onClick={() => navigate("/add-bar")}>
+            <button
+              className="primary"
+              onClick={() => setShowCreateModal(true)}
+            >
               + Ajouter un bar
             </button>
             <button className="outline" onClick={onLogout}>
@@ -493,77 +485,81 @@ function Dashboard({ token, onLogout }) {
                 </button>
               </div>
 
-              {showMap && (
-                <div className="map-wrapper">
-                  <BarsMap bars={filteredBars} />
-                </div>
-              )}
-
-              <div className="table-wrapper">
-                {barsLoading ? (
-                  <div className="center-placeholder">Chargement des bars…</div>
-                ) : filteredBars.length === 0 ? (
-                  <div className="center-placeholder">Aucun bar</div>
-                ) : (
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Nom</th>
-                        <th>Status</th>
-                        <th>Prix</th>
-                        <th>Soumis le</th>
-                        <th>IP</th>
-                        <th>Device</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredBars.map((bar) => (
-                        <tr key={bar.id}>
-                          <td>{bar.name}</td>
-                          <td>
-                            <span className={`status-pill ${bar.status}`}>
-                              {bar.status}
-                            </span>
-                          </td>
-                          <td>{formatCurrency(bar.price)}</td>
-                          <td>{formatDateTime(bar.submittedAt)}</td>
-                          <td>{bar.submittedByIP}</td>
-                          <td>{bar.deviceId}</td>
-                          <td className="row-actions">
-                            {bar.status === "pending" && (
-                              <>
-                                <button
-                                  className="action approve"
-                                  onClick={() => handleApprove(bar.id)}
-                                >
-                                  Approuver
-                                </button>
-                                <button
-                                  className="action reject"
-                                  onClick={() => handleReject(bar.id)}
-                                >
-                                  Rejeter
-                                </button>
-                              </>
-                            )}
-                            <button
-                              className="action secondary"
-                              onClick={() => setEditingBar(bar)}
-                            >
-                              Modifier
-                            </button>
-                            <button
-                              className="action delete"
-                              onClick={() => handleDelete(bar.id)}
-                            >
-                              Supprimer
-                            </button>
-                          </td>
+              <div className={`bars-layout ${showMap ? "with-map" : ""}`}>
+                <div className="table-wrapper">
+                  {barsLoading ? (
+                    <div className="center-placeholder">
+                      Chargement des bars…
+                    </div>
+                  ) : filteredBars.length === 0 ? (
+                    <div className="center-placeholder">Aucun bar</div>
+                  ) : (
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Nom</th>
+                          <th>Status</th>
+                          <th>Prix</th>
+                          <th>Soumis le</th>
+                          <th>IP</th>
+                          <th>Device</th>
+                          <th>Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {filteredBars.map((bar) => (
+                          <tr key={bar.id}>
+                            <td>{bar.name}</td>
+                            <td>
+                              <span className={`status-pill ${bar.status}`}>
+                                {bar.status}
+                              </span>
+                            </td>
+                            <td>{formatCurrency(bar.price)}</td>
+                            <td>{formatDateTime(bar.submittedAt)}</td>
+                            <td>{bar.submittedByIP}</td>
+                            <td>{bar.deviceId}</td>
+                            <td className="row-actions">
+                              {bar.status === "pending" && (
+                                <>
+                                  <button
+                                    className="action approve"
+                                    onClick={() => handleApprove(bar.id)}
+                                  >
+                                    Approuver
+                                  </button>
+                                  <button
+                                    className="action reject"
+                                    onClick={() => handleReject(bar.id)}
+                                  >
+                                    Rejeter
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                className="action secondary"
+                                onClick={() => setEditingBar(bar)}
+                              >
+                                Modifier
+                              </button>
+                              <button
+                                className="action delete"
+                                onClick={() => handleDelete(bar.id)}
+                              >
+                                Supprimer
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+
+                {showMap && (
+                  <div className="map-wrapper">
+                    <BarsMap bars={filteredBars} />
+                  </div>
                 )}
               </div>
             </section>
@@ -743,6 +739,17 @@ function Dashboard({ token, onLogout }) {
           bar={editingBar}
           onClose={() => setEditingBar(null)}
           onUpdate={handleUpdateBar}
+        />
+      )}
+
+      {showCreateModal && (
+        <CreateBarModal
+          token={token}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            fetchBars();
+            fetchStats();
+          }}
         />
       )}
     </div>
