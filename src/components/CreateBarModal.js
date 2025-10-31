@@ -94,7 +94,7 @@ const CreateBarModal = ({ token, onClose, onSuccess }) => {
   return (
     <div className="create-bar-overlay" onClick={onClose}>
       <div className="create-bar-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
+        <header className="modal-head">
           <div>
             <h2>Ajouter un bar</h2>
             <p>Sélectionne un point sur la carte et renseigne les détails</p>
@@ -102,9 +102,9 @@ const CreateBarModal = ({ token, onClose, onSuccess }) => {
           <button className="close-modal" onClick={onClose}>
             ✕
           </button>
-        </div>
+        </header>
 
-        <div className="modal-content">
+        <div className="modal-body">
           <div className="modal-map">
             <MapContainer
               center={[48.8566, 2.3522]}
@@ -118,12 +118,14 @@ const CreateBarModal = ({ token, onClose, onSuccess }) => {
               <LocationMarker onSelect={setSelectedLocation} />
               {selectedLocation && <Marker position={selectedLocation} />}
             </MapContainer>
-            {selectedLocation && (
+            {selectedLocation ? (
               <div className="coords">
-                <span>
-                  Lat : {selectedLocation.lat.toFixed(5)} / Lon :{" "}
-                  {selectedLocation.lng.toFixed(5)}
-                </span>
+                Lat&nbsp;: {selectedLocation.lat.toFixed(5)} · Lon&nbsp;:
+                {selectedLocation.lng.toFixed(5)}
+              </div>
+            ) : (
+              <div className="coords muted">
+                Clique sur la carte pour choisir la position
               </div>
             )}
           </div>

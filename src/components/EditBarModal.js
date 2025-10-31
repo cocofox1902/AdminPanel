@@ -12,10 +12,12 @@ L.Icon.Default.mergeOptions({
   shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
 });
 
-// Composant pour gérer les clics sur la carte et déplacer le marqueur
-function LocationMarker({ position, onLocationSelect }) {
+function LocationMarker({ onLocationSelect }) {
+  const [position, setPosition] = useState(null);
+
   useMapEvents({
     click(e) {
+      setPosition(e.latlng);
       onLocationSelect(e.latlng);
     },
   });
@@ -33,8 +35,7 @@ function EditBarModal({ bar, onClose, onUpdate }) {
     lng: bar.longitude,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("");
+  const [message, setMessage] = useState(null);
 
   const handleLocationSelect = (latlng) => {
     setSelectedLocation({
@@ -47,20 +48,18 @@ function EditBarModal({ bar, onClose, onUpdate }) {
     e.preventDefault();
 
     if (!barName.trim() || !barPrice.trim()) {
-      setMessage("Veuillez remplir tous les champs");
-      setMessageType("error");
+      setMessage({ type: "error", text: "Veuillez remplir tous les champs" });
       return;
     }
 
-    const price = parseFloat(barPrice);
+    const price = parseFloat(barPrice.replace(",", "."));
     if (isNaN(price) || price <= 0) {
-      setMessage("Veuillez entrer un prix valide");
-      setMessageType("error");
+      setMessage({ type: "error", text: "Veuillez entrer un prix valide" });
       return;
     }
 
     setIsSubmitting(true);
-    setMessage("");
+    setMessage(null);
 
     try {
       await onUpdate(bar.id, {
@@ -69,97 +68,90 @@ function EditBarModal({ bar, onClose, onUpdate }) {
         longitude: selectedLocation.lng,
         regularPrice: price,
       });
-      setMessage("Bar modifié avec succès !");
-      setMessageType("success");
+      setMessage({ type: "success", text: "Bar modifié avec succès" });
       setTimeout(() => {
         onClose();
-      }, 1500);
+      }, 900);
     } catch (error) {
-      setMessage(error.message || "Erreur lors de la modification");
-      setMessageType("error");
+      setMessage({
+        type: "error",
+        text: error.message || "Erreur lors de la modification",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>✏️ Modifier le bar</h2>
-          <button onClick={onClose} className="close-button">
+    <div className="edit-overlay" onClick={onClose}>
+      <div className="edit-modal" onClick={(e) => e.stopPropagation()}>
+        <header className="edit-head">
+          <div>
+            <h2>Modifier le bar</h2>
+            <p>Déplace le marqueur puis mets à jour les informations</p>
+          </div>
+          <button className="edit-close" onClick={onClose}>
             ✕
           </button>
-        </div>
+        </header>
 
-        <div className="edit-content">
-          <div className="map-section">
-            <p className="map-instruction">
-              📍 Cliquez sur la carte pour déplacer le marqueur
-            </p>
+        <div className="edit-body">
+          <div className="edit-map">
             <MapContainer
               center={[selectedLocation.lat, selectedLocation.lng]}
               zoom={15}
-              style={{ height: "300px", width: "100%", borderRadius: "8px" }}
+              className="edit-map-container"
             >
               <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                attribution="&copy; OpenStreetMap"
               />
-              <LocationMarker
-                position={[selectedLocation.lat, selectedLocation.lng]}
-                onLocationSelect={handleLocationSelect}
-              />
+              <Marker position={[selectedLocation.lat, selectedLocation.lng]} />
+              <LocationMarker onLocationSelect={handleLocationSelect} />
             </MapContainer>
-            <div className="location-display">
-              <strong>Position :</strong> {selectedLocation.lat.toFixed(6)},{" "}
+            <div className="edit-coords">
+              Position : {selectedLocation.lat.toFixed(6)} ·{" "}
               {selectedLocation.lng.toFixed(6)}
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="edit-form">
-            <div className="form-group">
-              <label htmlFor="barName">Nom du bar *</label>
+          <form className="edit-form" onSubmit={handleSubmit}>
+            <label>
+              Nom du bar
               <input
                 type="text"
-                id="barName"
                 value={barName}
                 onChange={(e) => setBarName(e.target.value)}
-                placeholder="Ex: Le Café des Sports"
+                placeholder="Nom du bar"
                 required
               />
-            </div>
+            </label>
 
-            <div className="form-group">
-              <label htmlFor="barPrice">Prix de la pinte (€) *</label>
+            <label>
+              Prix de la pinte (€)
               <input
-                type="number"
-                id="barPrice"
+                type="text"
                 value={barPrice}
                 onChange={(e) => setBarPrice(e.target.value)}
-                placeholder="Ex: 5.50"
-                step="0.01"
-                min="0"
+                placeholder="5,20"
                 required
               />
-            </div>
+            </label>
 
             {message && (
-              <div className={`message ${messageType}`}>{message}</div>
+              <div className={`edit-message ${message.type}`}>
+                {message.text}
+              </div>
             )}
 
-            <div className="button-group">
-              <button
-                type="submit"
-                className="submit-btn"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Modification..." : "Enregistrer"}
+            <div className="edit-actions">
+              <button type="submit" className="primary" disabled={isSubmitting}>
+                {isSubmitting ? "Enregistrement..." : "Enregistrer"}
               </button>
               <button
                 type="button"
+                className="outline"
                 onClick={onClose}
-                className="cancel-btn"
                 disabled={isSubmitting}
               >
                 Annuler
