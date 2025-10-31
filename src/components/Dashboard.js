@@ -1,31 +1,190 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import API_URL from "../config";
-import BarCard from "./BarCard";
-import BannedIPsManager from "./BannedIPsManager";
-import TwoFactorSettings from "./TwoFactorSettings";
 import EditBarModal from "./EditBarModal";
-import ReportsManager from "./ReportsManager";
 import "./Dashboard.css";
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
+  iconUrl: require("leaflet/dist/images/marker-icon.png"),
+  shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
+});
+
+const NAV_ITEMS = [
+  { id: "bars", label: "Bars", icon: "📌" },
+  { id: "reports", label: "Reports", icon: "🚨" },
+  { id: "bans", label: "Bannissements", icon: "⛔" },
+];
+
+const STATUS_FILTERS = [
+  { id: "all", label: "Tous" },
+  { id: "pending", label: "En attente" },
+  { id: "approved", label: "Approuvés" },
+  { id: "rejected", label: "Rejetés" },
+];
+
+const PRICE_SORTS = [
+  { id: "recent", label: "Plus récents" },
+  { id: "priceAsc", label: "Prix ↑" },
+  { id: "priceDesc", label: "Prix ↓" },
+];
+
+const BarsMap = ({ bars }) => {
+  if (!bars?.length) {
+    return (
+      <div className="map-placeholder">
+        Aucune donnée à afficher sur la carte
+      </div>
+    );
+  }
+
+  const validBars = bars.filter(
+    (bar) =>
+      Number.isFinite(Number(bar.latitude)) &&
+      Number.isFinite(Number(bar.longitude))
+  );
+
+  if (validBars.length === 0) {
+    return <div className="map-placeholder">Aucune donnée géolocalisée</div>;
+  }
+
+  const first = validBars[0];
+  const center = [
+    Number(first.latitude) || 48.8566,
+    Number(first.longitude) || 2.3522,
+  ];
+
+  return (
+    <MapContainer center={center} zoom={13} className="bars-map-container">
+      <TileLayer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution="&copy; OpenStreetMap"
+      />
+      {validBars.map((bar) => (
+        <Marker
+          key={bar.id}
+          position={[Number(bar.latitude) || 0, Number(bar.longitude) || 0]}
+        >
+          <Popup>
+            <strong>{bar.name}</strong>
+            <div>{formatCurrency(bar.price)}</div>
+            <div>Status : {bar.status}</div>
+          </Popup>
+        </Marker>
+      ))}
+    </MapContainer>
+  );
+};
+
+const formatCurrency = (value) => {
+  const number = Number(value || 0);
+  return `${number.toFixed(2)} €`;
+};
+
+const formatDateTime = (value) => {
+  if (!value || value === "—") return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
+};
+
+const normalizeBar = (bar) => {
+  const priceValue = Number(bar.regularprice ?? bar.regularPrice ?? 0);
+  return {
+    id: bar.id,
+    name: bar.name,
+    status: bar.status,
+    price: priceValue,
+    regularPrice: priceValue,
+    latitude: bar.latitude,
+    longitude: bar.longitude,
+    submittedAt: bar.submittedat ?? bar.submittedAt,
+    submittedByIP: bar.submittedbyip ?? bar.submittedByIP ?? "—",
+    deviceId: bar.deviceid ?? bar.deviceId ?? "—",
+  };
+};
+
+const normalizeReport = (report) => ({
+  id: report.id,
+  barName: report.barname ?? report.barName ?? "Bar inconnu",
+  status: report.status,
+  reason: report.reason,
+  reportedAt: report.reportedat ?? report.reportedAt,
+  ip: report.reportedbyip ?? report.reportedByIP ?? "—",
+  deviceId: report.deviceid ?? report.deviceId ?? "—",
+});
+
+const normalizeBan = (item) => ({
+  id: item.id,
+  ip: item.ip ?? "—",
+  deviceId: item.deviceid ?? item.deviceId ?? "—",
+  reason: item.reason ?? "",
+  bannedAt: item.bannedat ?? item.bannedAt,
+});
 
 function Dashboard({ token, onLogout }) {
   const navigate = useNavigate();
+  const [activeSection, setActiveSection] = useState("bars");
   const [stats, setStats] = useState({
+    totalBars: 0,
+    barsThisWeek: 0,
+    activeDevices: 0,
     pending: 0,
     approved: 0,
     rejected: 0,
-    bannedIPs: 0,
     reports: 0,
   });
   const [bars, setBars] = useState([]);
-  const [currentTab, setCurrentTab] = useState("pending");
-  const [loading, setLoading] = useState(false);
+  const [barsLoading, setBarsLoading] = useState(false);
+  const [barStatusFilter, setBarStatusFilter] = useState("all");
+  const [barSort, setBarSort] = useState("recent");
+  const [showMap, setShowMap] = useState(false);
   const [editingBar, setEditingBar] = useState(null);
 
-  const axiosConfig = {
-    headers: { Authorization: `Bearer ${token}` },
-  };
+  const [reports, setReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportFilter, setReportFilter] = useState("pending");
+
+  const [bans, setBans] = useState([]);
+  const [bansLoading, setBansLoading] = useState(false);
+  const [banForm, setBanForm] = useState({ ip: "", deviceId: "", reason: "" });
+
+  const [actionMessage, setActionMessage] = useState(null);
+
+  const axiosConfig = useMemo(
+    () => ({ headers: { Authorization: `Bearer ${token}` } }),
+    [token]
+  );
+
+  useEffect(() => {
+    fetchStats();
+    fetchBars();
+    fetchReports(reportFilter);
+    fetchBans();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    fetchReports(reportFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportFilter]);
+
+  useEffect(() => {
+    if (actionMessage) {
+      const timer = setTimeout(() => setActionMessage(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [actionMessage]);
 
   const fetchStats = async () => {
     try {
@@ -36,74 +195,102 @@ function Dashboard({ token, onLogout }) {
     }
   };
 
-  const fetchBars = async (status) => {
-    setLoading(true);
+  const fetchBars = async () => {
+    setBarsLoading(true);
     try {
-      const response = await axios.get(
-        `${API_URL}/admin/bars?status=${status}`,
-        axiosConfig
-      );
-      setBars(response.data);
+      const response = await axios.get(`${API_URL}/admin/bars`, axiosConfig);
+      setBars(response.data.map(normalizeBar));
     } catch (error) {
       console.error("Error fetching bars:", error);
     } finally {
-      setLoading(false);
+      setBarsLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const fetchReports = async (status) => {
+    setReportsLoading(true);
+    try {
+      const response = await axios.get(
+        `${API_URL}/admin/reports?status=${status}`,
+        axiosConfig
+      );
+      setReports(response.data.map(normalizeReport));
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+    } finally {
+      setReportsLoading(false);
+    }
+  };
 
-  useEffect(() => {
-    fetchBars(currentTab);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTab]);
+  const fetchBans = async () => {
+    setBansLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/admin/banned`, axiosConfig);
+      setBans(response.data.map(normalizeBan));
+    } catch (error) {
+      console.error("Error fetching bans:", error);
+    } finally {
+      setBansLoading(false);
+    }
+  };
+
+  const filteredBars = useMemo(() => {
+    let output = [...bars];
+    if (barStatusFilter !== "all") {
+      output = output.filter((bar) => bar.status === barStatusFilter);
+    }
+    if (barSort === "priceAsc") {
+      output.sort((a, b) => a.price - b.price);
+    } else if (barSort === "priceDesc") {
+      output.sort((a, b) => b.price - a.price);
+    } else {
+      output.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    }
+    return output;
+  }, [bars, barStatusFilter, barSort]);
 
   const handleApprove = async (id) => {
     try {
       await axios.patch(`${API_URL}/admin/bars/${id}/approve`, {}, axiosConfig);
-      fetchBars(currentTab);
+      setActionMessage({ type: "success", text: "Bar approuvé" });
+      fetchBars();
       fetchStats();
     } catch (error) {
       console.error("Error approving bar:", error);
-      alert("Failed to approve bar");
+      setActionMessage({ type: "error", text: "Impossible d'approuver" });
     }
   };
 
   const handleReject = async (id) => {
     try {
       await axios.patch(`${API_URL}/admin/bars/${id}/reject`, {}, axiosConfig);
-      fetchBars(currentTab);
+      setActionMessage({ type: "success", text: "Bar rejeté" });
+      fetchBars();
       fetchStats();
     } catch (error) {
       console.error("Error rejecting bar:", error);
-      alert("Failed to reject bar");
+      setActionMessage({ type: "error", text: "Impossible de rejeter" });
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this bar?")) return;
-
+    if (!window.confirm("Supprimer ce bar ?")) return;
     try {
       await axios.delete(`${API_URL}/admin/bars/${id}`, axiosConfig);
-      fetchBars(currentTab);
+      setActionMessage({ type: "success", text: "Bar supprimé" });
+      fetchBars();
       fetchStats();
     } catch (error) {
       console.error("Error deleting bar:", error);
-      alert("Failed to delete bar");
+      setActionMessage({ type: "error", text: "Suppression impossible" });
     }
-  };
-
-  const handleEdit = (bar) => {
-    setEditingBar(bar);
   };
 
   const handleUpdateBar = async (id, updatedData) => {
     try {
       await axios.put(`${API_URL}/admin/bars/${id}`, updatedData, axiosConfig);
-      fetchBars(currentTab);
+      setActionMessage({ type: "success", text: "Bar mis à jour" });
+      fetchBars();
       fetchStats();
     } catch (error) {
       console.error("Error updating bar:", error);
@@ -111,115 +298,444 @@ function Dashboard({ token, onLogout }) {
     }
   };
 
+  const handleResolveReport = async (id) => {
+    try {
+      await axios.patch(
+        `${API_URL}/admin/reports/${id}/resolve`,
+        {},
+        axiosConfig
+      );
+      setActionMessage({ type: "success", text: "Signalement résolu" });
+      fetchReports(reportFilter);
+      fetchStats();
+    } catch (error) {
+      console.error("Error resolving report:", error);
+      setActionMessage({ type: "error", text: "Résolution impossible" });
+    }
+  };
+
+  const handleDeleteReport = async (id) => {
+    if (!window.confirm("Supprimer ce signalement ?")) return;
+    try {
+      await axios.delete(`${API_URL}/admin/reports/${id}`, axiosConfig);
+      setActionMessage({ type: "success", text: "Signalement supprimé" });
+      fetchReports(reportFilter);
+      fetchStats();
+    } catch (error) {
+      console.error("Error deleting report:", error);
+      setActionMessage({ type: "error", text: "Suppression impossible" });
+    }
+  };
+
+  const handleBanSubmit = async (event) => {
+    event.preventDefault();
+    const payload = {
+      ip: banForm.ip.trim() || undefined,
+      deviceId: banForm.deviceId.trim() || undefined,
+      reason: banForm.reason.trim() || undefined,
+    };
+
+    if (!payload.ip && !payload.deviceId) {
+      setActionMessage({ type: "error", text: "Renseigne IP ou deviceId" });
+      return;
+    }
+
+    try {
+      await axios.post(`${API_URL}/admin/ban`, payload, axiosConfig);
+      setBanForm({ ip: "", deviceId: "", reason: "" });
+      setActionMessage({ type: "success", text: "Bannissement enregistré" });
+      fetchBans();
+      fetchStats();
+    } catch (error) {
+      console.error("Error banning entity:", error);
+      setActionMessage({ type: "error", text: "Bannissement impossible" });
+    }
+  };
+
+  const handleUnban = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/admin/banned/${id}`, axiosConfig);
+      setActionMessage({ type: "success", text: "Bannissement levé" });
+      fetchBans();
+      fetchStats();
+    } catch (error) {
+      console.error("Error unbanning entity:", error);
+      setActionMessage({ type: "error", text: "Impossible de lever le ban" });
+    }
+  };
+
+  const analyticsCards = [
+    {
+      label: "Bars totaux",
+      value: stats.totalBars,
+      footnote: `${stats.approved} approuvés`,
+    },
+    {
+      label: "Bars ajoutés (7 jours)",
+      value: stats.barsThisWeek,
+      footnote: `${stats.pending} en attente`,
+    },
+    {
+      label: "Appareils actifs",
+      value: stats.activeDevices,
+      footnote: `${stats.reports} signalements en attente`,
+    },
+  ];
+
   return (
-    <div className="dashboard">
-      <header className="dashboard-header">
-        <div className="header-content">
-          <h1>🍺 BudBeer Admin Panel</h1>
-          <div className="header-actions">
+    <div className="admin-shell">
+      <aside className="admin-sidebar">
+        <div className="sidebar-brand">BudBeer Admin</div>
+        <nav className="sidebar-nav">
+          {NAV_ITEMS.map((item) => (
             <button
-              onClick={() => navigate("/add-bar")}
-              className="add-bar-button"
+              key={item.id}
+              className={`sidebar-item ${
+                activeSection === item.id ? "active" : ""
+              }`}
+              onClick={() => setActiveSection(item.id)}
             >
-              ➕ Créer un bar
+              <span className="item-icon">{item.icon}</span>
+              <span>{item.label}</span>
             </button>
-            <button onClick={onLogout} className="logout-button">
+          ))}
+        </nav>
+        <div className="sidebar-footer">
+          <button
+            className="sidebar-secondary"
+            onClick={() => navigate("/add-bar")}
+          >
+            + Ajouter un bar
+          </button>
+          <button className="sidebar-secondary" onClick={onLogout}>
+            Se déconnecter
+          </button>
+        </div>
+      </aside>
+
+      <div className="admin-body">
+        <header className="admin-header">
+          <div>
+            <h1>
+              {activeSection === "bars"
+                ? "Gestion des bars"
+                : activeSection === "reports"
+                ? "Signalements"
+                : "Bannissements"}
+            </h1>
+            <p className="header-subtitle">
+              Interface sobre pour suivre l'activité
+            </p>
+          </div>
+          <div className="header-actions">
+            <button className="primary" onClick={() => navigate("/add-bar")}>
+              + Ajouter un bar
+            </button>
+            <button className="outline" onClick={onLogout}>
               Logout
             </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="dashboard-container">
-        <div className="stats-grid">
-          <div className="stat-card pending">
-            <div className="stat-value">{stats.pending}</div>
-            <div className="stat-label">Pending</div>
-          </div>
-          <div className="stat-card approved">
-            <div className="stat-value">{stats.approved}</div>
-            <div className="stat-label">Approved</div>
-          </div>
-          <div className="stat-card rejected">
-            <div className="stat-value">{stats.rejected}</div>
-            <div className="stat-label">Rejected</div>
-          </div>
-          <div className="stat-card banned">
-            <div className="stat-value">{stats.bannedIPs}</div>
-            <div className="stat-label">Banned IPs</div>
-          </div>
-        </div>
+        <section className="analytics-grid">
+          {analyticsCards.map((card) => (
+            <div key={card.label} className="analytics-card">
+              <span className="analytics-label">{card.label}</span>
+              <strong className="analytics-value">{card.value}</strong>
+              <span className="analytics-footnote">{card.footnote}</span>
+            </div>
+          ))}
+        </section>
 
-        <div className="tabs">
-          <button
-            className={`tab ${currentTab === "pending" ? "active" : ""}`}
-            onClick={() => setCurrentTab("pending")}
-          >
-            Pending ({stats.pending})
-          </button>
-          <button
-            className={`tab ${currentTab === "approved" ? "active" : ""}`}
-            onClick={() => setCurrentTab("approved")}
-          >
-            Approved ({stats.approved})
-          </button>
-          <button
-            className={`tab ${currentTab === "rejected" ? "active" : ""}`}
-            onClick={() => setCurrentTab("rejected")}
-          >
-            Rejected ({stats.rejected})
-          </button>
-          <button
-            className={`tab ${currentTab === "banned-ips" ? "active" : ""}`}
-            onClick={() => setCurrentTab("banned-ips")}
-          >
-            Banned IPs ({stats.bannedIPs})
-          </button>
-          <button
-            className={`tab ${currentTab === "reports" ? "active" : ""}`}
-            onClick={() => setCurrentTab("reports")}
-          >
-            🚨 Reports ({stats.reports})
-          </button>
-          <button
-            className={`tab ${currentTab === "security" ? "active" : ""}`}
-            onClick={() => setCurrentTab("security")}
-          >
-            🔐 Security
-          </button>
-        </div>
+        {actionMessage && (
+          <div className={`action-toast ${actionMessage.type}`}>
+            {actionMessage.text}
+          </div>
+        )}
 
-        <div className="content">
-          {currentTab === "banned-ips" ? (
-            <BannedIPsManager token={token} onUpdate={fetchStats} />
-          ) : currentTab === "reports" ? (
-            <ReportsManager token={token} onUpdate={fetchStats} />
-          ) : currentTab === "security" ? (
-            <TwoFactorSettings token={token} />
-          ) : (
-            <>
-              {loading ? (
-                <div className="loading">Loading...</div>
-              ) : bars.length === 0 ? (
-                <div className="empty-state">No {currentTab} bars found</div>
-              ) : (
-                <div className="bars-grid">
-                  {bars.map((bar) => (
-                    <BarCard
-                      key={bar.id}
-                      bar={bar}
-                      onApprove={handleApprove}
-                      onReject={handleReject}
-                      onDelete={handleDelete}
-                      onEdit={handleEdit}
-                      status={currentTab}
-                    />
-                  ))}
+        <main className="admin-content">
+          {activeSection === "bars" && (
+            <section className="section-card">
+              <div className="section-header">
+                <div className="filters">
+                  <div className="filter-group">
+                    {STATUS_FILTERS.map((filter) => (
+                      <button
+                        key={filter.id}
+                        className={`chip ${
+                          barStatusFilter === filter.id ? "active" : ""
+                        }`}
+                        onClick={() => setBarStatusFilter(filter.id)}
+                      >
+                        {filter.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="filter-group">
+                    {PRICE_SORTS.map((sort) => (
+                      <button
+                        key={sort.id}
+                        className={`chip ${
+                          barSort === sort.id ? "active" : ""
+                        }`}
+                        onClick={() => setBarSort(sort.id)}
+                      >
+                        {sort.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  className="outline"
+                  onClick={() => setShowMap((prev) => !prev)}
+                >
+                  {showMap ? "Masquer la carte" : "Afficher la carte"}
+                </button>
+              </div>
+
+              {showMap && (
+                <div className="map-wrapper">
+                  <BarsMap bars={filteredBars} />
                 </div>
               )}
-            </>
+
+              <div className="table-wrapper">
+                {barsLoading ? (
+                  <div className="center-placeholder">Chargement des bars…</div>
+                ) : filteredBars.length === 0 ? (
+                  <div className="center-placeholder">Aucun bar</div>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Nom</th>
+                        <th>Status</th>
+                        <th>Prix</th>
+                        <th>Soumis le</th>
+                        <th>IP</th>
+                        <th>Device</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredBars.map((bar) => (
+                        <tr key={bar.id}>
+                          <td>{bar.name}</td>
+                          <td>
+                            <span className={`status-pill ${bar.status}`}>
+                              {bar.status}
+                            </span>
+                          </td>
+                          <td>{formatCurrency(bar.price)}</td>
+                          <td>{formatDateTime(bar.submittedAt)}</td>
+                          <td>{bar.submittedByIP}</td>
+                          <td>{bar.deviceId}</td>
+                          <td className="row-actions">
+                            {bar.status === "pending" && (
+                              <>
+                                <button
+                                  className="action approve"
+                                  onClick={() => handleApprove(bar.id)}
+                                >
+                                  Approuver
+                                </button>
+                                <button
+                                  className="action reject"
+                                  onClick={() => handleReject(bar.id)}
+                                >
+                                  Rejeter
+                                </button>
+                              </>
+                            )}
+                            <button
+                              className="action secondary"
+                              onClick={() => setEditingBar(bar)}
+                            >
+                              Modifier
+                            </button>
+                            <button
+                              className="action delete"
+                              onClick={() => handleDelete(bar.id)}
+                            >
+                              Supprimer
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </section>
           )}
-        </div>
+
+          {activeSection === "reports" && (
+            <section className="section-card">
+              <div className="section-header">
+                <h2>Signalements</h2>
+                <div className="filter-group">
+                  {[
+                    { id: "pending", label: "En attente" },
+                    { id: "resolved", label: "Résolus" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      className={`chip ${
+                        reportFilter === item.id ? "active" : ""
+                      }`}
+                      onClick={() => setReportFilter(item.id)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="table-wrapper">
+                {reportsLoading ? (
+                  <div className="center-placeholder">Chargement…</div>
+                ) : reports.length === 0 ? (
+                  <div className="center-placeholder">Aucun signalement</div>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Bar</th>
+                        <th>Raison</th>
+                        <th>Date</th>
+                        <th>IP</th>
+                        <th>Device</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reports.map((report) => (
+                        <tr key={report.id}>
+                          <td>{report.barName}</td>
+                          <td>{report.reason}</td>
+                          <td>{formatDateTime(report.reportedAt)}</td>
+                          <td>{report.ip}</td>
+                          <td>{report.deviceId}</td>
+                          <td className="row-actions">
+                            {reportFilter === "pending" && (
+                              <button
+                                className="action approve"
+                                onClick={() => handleResolveReport(report.id)}
+                              >
+                                Résoudre
+                              </button>
+                            )}
+                            <button
+                              className="action delete"
+                              onClick={() => handleDeleteReport(report.id)}
+                            >
+                              Supprimer
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </section>
+          )}
+
+          {activeSection === "bans" && (
+            <section className="section-card">
+              <div className="section-header">
+                <h2>Bannissements</h2>
+              </div>
+
+              <form className="ban-form" onSubmit={handleBanSubmit}>
+                <div className="form-grid">
+                  <div className="input-group">
+                    <label>Adresse IP</label>
+                    <input
+                      type="text"
+                      placeholder="192.168.0.1"
+                      value={banForm.ip}
+                      onChange={(e) =>
+                        setBanForm((prev) => ({ ...prev, ip: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Device ID</label>
+                    <input
+                      type="text"
+                      placeholder="UUID..."
+                      value={banForm.deviceId}
+                      onChange={(e) =>
+                        setBanForm((prev) => ({
+                          ...prev,
+                          deviceId: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Raison</label>
+                    <input
+                      type="text"
+                      placeholder="Optionnel"
+                      value={banForm.reason}
+                      onChange={(e) =>
+                        setBanForm((prev) => ({
+                          ...prev,
+                          reason: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="form-actions">
+                    <button className="primary" type="submit">
+                      Ajouter un bannissement
+                    </button>
+                  </div>
+                </div>
+              </form>
+
+              <div className="table-wrapper">
+                {bansLoading ? (
+                  <div className="center-placeholder">Chargement…</div>
+                ) : bans.length === 0 ? (
+                  <div className="center-placeholder">Aucun bannissement</div>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>IP</th>
+                        <th>Device ID</th>
+                        <th>Raison</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bans.map((entry) => (
+                        <tr key={entry.id}>
+                          <td>{entry.ip}</td>
+                          <td>{entry.deviceId}</td>
+                          <td>{entry.reason || "—"}</td>
+                          <td>{formatDateTime(entry.bannedAt)}</td>
+                          <td className="row-actions">
+                            <button
+                              className="action delete"
+                              onClick={() => handleUnban(entry.id)}
+                            >
+                              Lever le ban
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </section>
+          )}
+        </main>
       </div>
 
       {editingBar && (
