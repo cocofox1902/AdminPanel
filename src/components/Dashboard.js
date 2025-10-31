@@ -364,6 +364,19 @@ function Dashboard({ token, onLogout }) {
     }
   };
 
+  const handleBanSubmitter = async (id) => {
+    if (!window.confirm("Bannir l'expéditeur de ce bar ?")) return;
+    try {
+      await axios.post(`${API_URL}/admin/bars/${id}/ban`, {}, axiosConfig);
+      setActionMessage({ type: "success", text: "IP/device bannis" });
+      fetchBans();
+      fetchStats();
+    } catch (error) {
+      console.error("Error banning submitter:", error);
+      setActionMessage({ type: "error", text: "Impossible de bannir" });
+    }
+  };
+
   const analyticsCards = [
     {
       label: "Bars totaux",
@@ -547,6 +560,12 @@ function Dashboard({ token, onLogout }) {
                                 onClick={() => handleDelete(bar.id)}
                               >
                                 Supprimer
+                              </button>
+                              <button
+                                className="action warning"
+                                onClick={() => handleBanSubmitter(bar.id)}
+                              >
+                                Bannir
                               </button>
                             </td>
                           </tr>

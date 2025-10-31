@@ -358,6 +358,11 @@ table.data-table tr:hover {
   color: #f87171;
 }
 
+.action.warning {
+  background: rgba(249, 115, 22, 0.18);
+  color: #f97316;
+}
+
 .action:hover {
   transform: translateY(-1px);
 }
@@ -416,6 +421,11 @@ table.data-table tr:hover {
 .bars-layout {
   display: flex;
   gap: 24px;
+  align-items: stretch;
+}
+
+.bars-layout .table-wrapper {
+  flex: 1 1 100%;
 }
 
 .bars-layout.with-map .table-wrapper {
