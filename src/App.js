@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
+import Privacy from "./components/Privacy";
 import "./App.css";
 
 function App() {
@@ -44,6 +45,10 @@ function App() {
               <Navigate to="/login" />
             )
           }
+        />
+        <Route
+          path="/privacy"
+          element={<Privacy />}
         />
         <Route
           path="/"
