@@ -23,11 +23,19 @@ function BarCard({ bar, onApprove, onReject, onDelete, onEdit, status }) {
             </span>
           </div>
           <div className="info-row">
-            <span className="label">💰 Price:</span>
+            <span className="label">💰 Prix normal:</span>
             <span className="value">
               €{(bar.regularPrice || bar.regularprice)?.toFixed(2)}
             </span>
           </div>
+          {(bar.happyHourPrice || bar.happyhourprice) && (
+            <div className="info-row">
+              <span className="label">🍻 Happy Hour:</span>
+              <span className="value" style={{ color: '#4CAF50' }}>
+                €{(bar.happyHourPrice || bar.happyhourprice)?.toFixed(2)}
+              </span>
+            </div>
+          )}
           <div className="info-row">
             <span className="label">🕒 Submitted:</span>
             <span className="value">
