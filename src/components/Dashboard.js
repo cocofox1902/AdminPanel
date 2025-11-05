@@ -542,21 +542,17 @@ function Dashboard({ token, onLogout }) {
                             <td>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 <span>{formatCurrency(bar.price)}</span>
-                                {bar.happyHourPrice && (
-                                  <span style={{ color: '#4CAF50', fontSize: '0.9em' }}>
-                                    🍻 {formatCurrency(bar.happyHourPrice)}
-                                  </span>
-                                )}
+                                <span style={{ color: bar.happyHourPrice ? '#4CAF50' : '#888', fontSize: '0.9em' }}>
+                                  🍻 {bar.happyHourPrice ? formatCurrency(bar.happyHourPrice) : '--'}
+                                </span>
                               </div>
                             </td>
                             <td>{formatDateTime(bar.submittedAt)}</td>
                             <td>
                               <div style={{ fontSize: '0.85em', opacity: 0.8 }}>
                                 <div>{bar.submittedByIP}</div>
-                                <div style={{ fontSize: '0.9em', opacity: 0.7 }}>
-                                  {bar.deviceId !== '—' && bar.deviceId !== 'admin' 
-                                    ? bar.deviceId.substring(0, 8) + '...' 
-                                    : bar.deviceId}
+                                <div style={{ fontSize: '0.9em', opacity: 0.7, wordBreak: 'break-all' }}>
+                                  {bar.deviceId}
                                 </div>
                               </div>
                             </td>
@@ -664,10 +660,8 @@ function Dashboard({ token, onLogout }) {
                           <td>
                             <div style={{ fontSize: '0.85em', opacity: 0.8 }}>
                               <div>{report.ip}</div>
-                              <div style={{ fontSize: '0.9em', opacity: 0.7 }}>
-                                {report.deviceId !== '—' 
-                                  ? report.deviceId.substring(0, 8) + '...' 
-                                  : report.deviceId}
+                              <div style={{ fontSize: '0.9em', opacity: 0.7, wordBreak: 'break-all' }}>
+                                {report.deviceId}
                               </div>
                             </div>
                           </td>
@@ -774,10 +768,8 @@ function Dashboard({ token, onLogout }) {
                           <td>
                             <div style={{ fontSize: '0.85em', opacity: 0.8 }}>
                               <div>{entry.ip}</div>
-                              <div style={{ fontSize: '0.9em', opacity: 0.7 }}>
-                                {entry.deviceId !== '—' 
-                                  ? entry.deviceId.substring(0, 8) + '...' 
-                                  : entry.deviceId}
+                              <div style={{ fontSize: '0.9em', opacity: 0.7, wordBreak: 'break-all' }}>
+                                {entry.deviceId}
                               </div>
                             </div>
                           </td>
