@@ -31,6 +31,7 @@ const AddBarTab = () => {
   const navigate = useNavigate();
   const [barName, setBarName] = useState("");
   const [barPrice, setBarPrice] = useState("");
+  const [happyHourPrice, setHappyHourPrice] = useState("");
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -64,6 +65,17 @@ const AddBarTab = () => {
       return;
     }
 
+    // Valider le prix Happy Hour si renseigné
+    let happyHourPriceValue = null;
+    if (happyHourPrice.trim() !== "") {
+      happyHourPriceValue = parseFloat(happyHourPrice);
+      if (isNaN(happyHourPriceValue) || happyHourPriceValue <= 0) {
+        setMessage("Veuillez entrer un prix Happy Hour valide");
+        setMessageType("error");
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setMessage("");
 
@@ -80,6 +92,8 @@ const AddBarTab = () => {
           latitude: selectedLocation.lat,
           longitude: selectedLocation.lng,
           regularPrice: price,
+          happyHourPrice: happyHourPriceValue,
+          deviceId: "admin",
         }),
       });
 
@@ -91,6 +105,7 @@ const AddBarTab = () => {
         // Réinitialiser le formulaire
         setBarName("");
         setBarPrice("");
+        setHappyHourPrice("");
         setSelectedLocation(null);
       } else {
         const error = await response.json();
@@ -163,6 +178,19 @@ const AddBarTab = () => {
               step="0.01"
               min="0"
               required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="happyHourPrice">Prix Happy Hour (€)</label>
+            <input
+              type="number"
+              id="happyHourPrice"
+              value={happyHourPrice}
+              onChange={(e) => setHappyHourPrice(e.target.value)}
+              placeholder="Ex: 4.50 (optionnel)"
+              step="0.01"
+              min="0"
             />
           </div>
 

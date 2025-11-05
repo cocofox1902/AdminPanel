@@ -30,6 +30,7 @@ const LocationMarker = ({ onSelect }) => {
 const CreateBarModal = ({ token, onClose, onSuccess }) => {
   const [barName, setBarName] = useState("");
   const [barPrice, setBarPrice] = useState("");
+  const [happyHourPrice, setHappyHourPrice] = useState("");
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
@@ -50,6 +51,16 @@ const CreateBarModal = ({ token, onClose, onSuccess }) => {
       return;
     }
 
+    // Valider le prix Happy Hour si renseigné
+    let normalizedHappyHourPrice = null;
+    if (happyHourPrice.trim() !== "") {
+      normalizedHappyHourPrice = Number(happyHourPrice.replace(",", "."));
+      if (!Number.isFinite(normalizedHappyHourPrice) || normalizedHappyHourPrice <= 0) {
+        setMessage({ type: "error", text: "Prix Happy Hour invalide." });
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setMessage(null);
 
@@ -61,6 +72,8 @@ const CreateBarModal = ({ token, onClose, onSuccess }) => {
           latitude: selectedLocation.lat,
           longitude: selectedLocation.lng,
           regularPrice: normalizedPrice,
+          happyHourPrice: normalizedHappyHourPrice,
+          deviceId: "admin",
         },
         {
           headers: {
@@ -74,6 +87,7 @@ const CreateBarModal = ({ token, onClose, onSuccess }) => {
       setTimeout(() => {
         setBarName("");
         setBarPrice("");
+        setHappyHourPrice("");
         setSelectedLocation(null);
         onClose();
         if (onSuccess) onSuccess();
@@ -113,7 +127,7 @@ const CreateBarModal = ({ token, onClose, onSuccess }) => {
             >
               <TileLayer
                 attribution="&copy; OpenStreetMap"
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               <LocationMarker onSelect={setSelectedLocation} />
               {selectedLocation && <Marker position={selectedLocation} />}
@@ -150,6 +164,16 @@ const CreateBarModal = ({ token, onClose, onSuccess }) => {
                 onChange={(e) => setBarPrice(e.target.value)}
                 placeholder="5,20"
                 required
+              />
+            </label>
+
+            <label>
+              Prix Happy Hour (€)
+              <input
+                type="text"
+                value={happyHourPrice}
+                onChange={(e) => setHappyHourPrice(e.target.value)}
+                placeholder="4,50 (optionnel)"
               />
             </label>
 

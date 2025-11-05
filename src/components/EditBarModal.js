@@ -30,6 +30,9 @@ function EditBarModal({ bar, onClose, onUpdate }) {
   const [barPrice, setBarPrice] = useState(
     (bar.regularPrice || bar.regularprice || 0).toString()
   );
+  const [happyHourPrice, setHappyHourPrice] = useState(
+    (bar.happyHourPrice || bar.happyhourprice || "").toString()
+  );
   const [selectedLocation, setSelectedLocation] = useState({
     lat: bar.latitude,
     lng: bar.longitude,
@@ -58,6 +61,16 @@ function EditBarModal({ bar, onClose, onUpdate }) {
       return;
     }
 
+    // Valider le prix Happy Hour si renseigné
+    let happyHourPriceValue = null;
+    if (happyHourPrice.trim() !== "") {
+      happyHourPriceValue = parseFloat(happyHourPrice.replace(",", "."));
+      if (isNaN(happyHourPriceValue) || happyHourPriceValue <= 0) {
+        setMessage({ type: "error", text: "Prix Happy Hour invalide" });
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setMessage(null);
 
@@ -67,6 +80,7 @@ function EditBarModal({ bar, onClose, onUpdate }) {
         latitude: selectedLocation.lat,
         longitude: selectedLocation.lng,
         regularPrice: price,
+        happyHourPrice: happyHourPriceValue,
       });
       setMessage({ type: "success", text: "Bar modifié avec succès" });
       setTimeout(() => {
@@ -103,7 +117,7 @@ function EditBarModal({ bar, onClose, onUpdate }) {
               className="edit-map-container"
             >
               <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution="&copy; OpenStreetMap"
               />
               <Marker position={[selectedLocation.lat, selectedLocation.lng]} />
@@ -135,6 +149,16 @@ function EditBarModal({ bar, onClose, onUpdate }) {
                 onChange={(e) => setBarPrice(e.target.value)}
                 placeholder="5,20"
                 required
+              />
+            </label>
+
+            <label>
+              Prix Happy Hour (€)
+              <input
+                type="text"
+                value={happyHourPrice}
+                onChange={(e) => setHappyHourPrice(e.target.value)}
+                placeholder="4,50 (optionnel)"
               />
             </label>
 
