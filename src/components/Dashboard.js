@@ -100,12 +100,14 @@ const formatDateTime = (value) => {
 
 const normalizeBar = (bar) => {
   const priceValue = Number(bar.regularprice ?? bar.regularPrice ?? 0);
+  const happyHourValue = bar.happyhourprice ?? bar.happyHourPrice ?? null;
   return {
     id: bar.id,
     name: bar.name,
     status: bar.status,
     price: priceValue,
     regularPrice: priceValue,
+    happyHourPrice: happyHourValue ? Number(happyHourValue) : null,
     latitude: bar.latitude,
     longitude: bar.longitude,
     submittedAt: bar.submittedat ?? bar.submittedAt,
@@ -510,62 +512,93 @@ function Dashboard({ token, onLogout }) {
                     <table className="data-table">
                       <thead>
                         <tr>
-                          <th>Nom</th>
                           <th>Status</th>
+                          <th>Nom</th>
                           <th>Prix</th>
                           <th>Soumis le</th>
-                          <th>IP</th>
-                          <th>Device</th>
+                          <th>User</th>
                           <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredBars.map((bar) => (
                           <tr key={bar.id}>
+                            <td>
+                              <div 
+                                className="status-circle" 
+                                style={{
+                                  width: '12px',
+                                  height: '12px',
+                                  borderRadius: '50%',
+                                  backgroundColor: 
+                                    bar.status === 'approved' ? '#4CAF50' : 
+                                    bar.status === 'pending' ? '#FF9800' : 
+                                    '#F44336'
+                                }}
+                                title={bar.status}
+                              />
+                            </td>
                             <td>{bar.name}</td>
                             <td>
-                              <span className={`status-pill ${bar.status}`}>
-                                {bar.status}
-                              </span>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span>{formatCurrency(bar.price)}</span>
+                                {bar.happyHourPrice && (
+                                  <span style={{ color: '#4CAF50', fontSize: '0.9em' }}>
+                                    🍻 {formatCurrency(bar.happyHourPrice)}
+                                  </span>
+                                )}
+                              </div>
                             </td>
-                            <td>{formatCurrency(bar.price)}</td>
                             <td>{formatDateTime(bar.submittedAt)}</td>
-                            <td>{bar.submittedByIP}</td>
-                            <td>{bar.deviceId}</td>
+                            <td>
+                              <div style={{ fontSize: '0.85em', opacity: 0.8 }}>
+                                <div>{bar.submittedByIP}</div>
+                                <div style={{ fontSize: '0.9em', opacity: 0.7 }}>
+                                  {bar.deviceId !== '—' && bar.deviceId !== 'admin' 
+                                    ? bar.deviceId.substring(0, 8) + '...' 
+                                    : bar.deviceId}
+                                </div>
+                              </div>
+                            </td>
                             <td className="row-actions">
                               {bar.status === "pending" && (
                                 <>
                                   <button
                                     className="action approve"
                                     onClick={() => handleApprove(bar.id)}
+                                    title="Approuver"
                                   >
-                                    Approuver
+                                    ✓
                                   </button>
                                   <button
                                     className="action reject"
                                     onClick={() => handleReject(bar.id)}
+                                    title="Rejeter"
                                   >
-                                    Rejeter
+                                    ✗
                                   </button>
                                 </>
                               )}
                               <button
                                 className="action secondary"
                                 onClick={() => setEditingBar(bar)}
+                                title="Modifier"
                               >
-                                Modifier
+                                ✏️
                               </button>
                               <button
                                 className="action delete"
                                 onClick={() => handleDelete(bar.id)}
+                                title="Supprimer"
                               >
-                                Supprimer
+                                🗑️
                               </button>
                               <button
                                 className="action warning"
                                 onClick={() => handleBanSubmitter(bar.id)}
+                                title="Bannir l'utilisateur"
                               >
-                                Bannir
+                                ⛔
                               </button>
                             </td>
                           </tr>
@@ -618,8 +651,7 @@ function Dashboard({ token, onLogout }) {
                         <th>Bar</th>
                         <th>Raison</th>
                         <th>Date</th>
-                        <th>IP</th>
-                        <th>Device</th>
+                        <th>User</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -629,22 +661,32 @@ function Dashboard({ token, onLogout }) {
                           <td>{report.barName}</td>
                           <td>{report.reason}</td>
                           <td>{formatDateTime(report.reportedAt)}</td>
-                          <td>{report.ip}</td>
-                          <td>{report.deviceId}</td>
+                          <td>
+                            <div style={{ fontSize: '0.85em', opacity: 0.8 }}>
+                              <div>{report.ip}</div>
+                              <div style={{ fontSize: '0.9em', opacity: 0.7 }}>
+                                {report.deviceId !== '—' 
+                                  ? report.deviceId.substring(0, 8) + '...' 
+                                  : report.deviceId}
+                              </div>
+                            </div>
+                          </td>
                           <td className="row-actions">
                             {reportFilter === "pending" && (
                               <button
                                 className="action approve"
                                 onClick={() => handleResolveReport(report.id)}
+                                title="Résoudre"
                               >
-                                Résoudre
+                                ✓
                               </button>
                             )}
                             <button
                               className="action delete"
                               onClick={() => handleDeleteReport(report.id)}
+                              title="Supprimer"
                             >
-                              Supprimer
+                              🗑️
                             </button>
                           </td>
                         </tr>
@@ -720,8 +762,7 @@ function Dashboard({ token, onLogout }) {
                   <table className="data-table">
                     <thead>
                       <tr>
-                        <th>IP</th>
-                        <th>Device ID</th>
+                        <th>User</th>
                         <th>Raison</th>
                         <th>Date</th>
                         <th>Actions</th>
@@ -730,16 +771,25 @@ function Dashboard({ token, onLogout }) {
                     <tbody>
                       {bans.map((entry) => (
                         <tr key={entry.id}>
-                          <td>{entry.ip}</td>
-                          <td>{entry.deviceId}</td>
+                          <td>
+                            <div style={{ fontSize: '0.85em', opacity: 0.8 }}>
+                              <div>{entry.ip}</div>
+                              <div style={{ fontSize: '0.9em', opacity: 0.7 }}>
+                                {entry.deviceId !== '—' 
+                                  ? entry.deviceId.substring(0, 8) + '...' 
+                                  : entry.deviceId}
+                              </div>
+                            </div>
+                          </td>
                           <td>{entry.reason || "—"}</td>
                           <td>{formatDateTime(entry.bannedAt)}</td>
                           <td className="row-actions">
                             <button
                               className="action delete"
                               onClick={() => handleUnban(entry.id)}
+                              title="Lever le ban"
                             >
-                              Lever le ban
+                              🔓
                             </button>
                           </td>
                         </tr>
