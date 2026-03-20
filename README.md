@@ -42,13 +42,13 @@ The admin panel will open at `http://localhost:3000`
 The API URL is configured in `src/config.js`:
 
 ```javascript
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'https://budbeer-api.onrender.com/api';
 ```
 
 To change the API endpoint, create a `.env` file:
 
 ```env
-REACT_APP_API_URL=http://your-api-url.com/api
+REACT_APP_API_URL=https://budbeer-api.onrender.com/api
 ```
 
 ## Default Credentials
@@ -142,7 +142,7 @@ The build files will be in the `build/` folder.
 
 ## Environment Variables
 
-- `REACT_APP_API_URL` - Backend API URL (default: `http://localhost:3000/api`)
+- `REACT_APP_API_URL` - Backend API URL (default: `https://budbeer-api.onrender.com/api`; use `http://localhost:3000/api` for local API)
 
 ## Features in Detail
 

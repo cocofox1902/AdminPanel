@@ -61,7 +61,7 @@ Une fois déployé :
 2. Clique sur "Site settings" → "Environment variables"
 3. Ajoute une nouvelle variable :
    - **Key:** `REACT_APP_API_URL`
-   - **Value:** `https://ton-api.onrender.com/api` (l'URL de ton API Render)
+   - **Value:** `https://budbeer-api.onrender.com/api`
 
 4. Redéploie le site :
    - Va dans "Deploys"

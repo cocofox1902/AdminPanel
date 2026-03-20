@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import API_URL from "../config";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -81,7 +82,7 @@ const AddBarTab = () => {
 
     try {
       const token = localStorage.getItem("adminToken");
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/bars`, {
+      const response = await fetch(`${API_URL}/bars`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

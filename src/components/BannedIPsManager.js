@@ -17,7 +17,7 @@ function BannedIPsManager({ token, onUpdate }) {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${API_URL}/admin/banned-ips`,
+        `${API_URL}/admin/banned`,
         axiosConfig
       );
       setBannedIPs(response.data);
@@ -40,7 +40,7 @@ function BannedIPsManager({ token, onUpdate }) {
 
     try {
       await axios.post(
-        `${API_URL}/admin/banned-ips`,
+        `${API_URL}/admin/ban`,
         { ip: newIP, reason },
         axiosConfig
       );
